@@ -1,0 +1,48 @@
+import streamlit as st
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+
+# Load the Hugging Face model
+@st.cache_resource
+def load_model():
+    model_name = "huggingface/3.2-2b-instruct"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    nlp_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
+    return nlp_pipeline
+
+nlp = load_model()
+
+# Streamlit UI
+st.set_page_config(page_title="Drug Interaction Analyzer", layout="wide")
+st.title("💊 Drug Interaction Analyzer")
+
+st.markdown("This tool helps analyze drug interactions, recommend correct dosages, and suggest safe alternatives based on age and drug details.")
+
+# Input Section
+with st.form(key='drug_form'):
+    st.subheader("Enter Drug Details")
+    drug_name = st.text_input("Drug Name")
+    age = st.number_input("Patient Age", min_value=0, max_value=120)
+    dosage = st.text_input("Current Dosage")
+    submit_button = st.form_submit_button(label='Analyze')
+
+# Output Section
+if submit_button:
+    if not drug_name or not dosage:
+        st.error("Please provide both drug name and dosage.")
+    else:
+        st.info("Analyzing drug interactions... ⏳")
+        prompt = f"Analyze drug interactions for {drug_name}, current dosage: {dosage}, patient age: {age}. Suggest safe alternatives if necessary and provide accurate dosage recommendations."
+        result = nlp(prompt, max_length=500, do_sample=True)[0]['generated_text']
+        st.success("Analysis Complete ✅")
+        st.subheader("Results")
+        st.write(result)
+
+# Sidebar Info
+st.sidebar.header("About")
+st.sidebar.info("This app uses a FastAPI backend and Hugging Face 3.2 2B instruct model to provide accurate drug interaction analysis and recommendations.")
+
+# Optional: Add more interactive features
+st.sidebar.header("Tips")
+st.sidebar.markdown("- Always double-check recommendations with a certified healthcare professional.
+- Input precise dosages for more accurate results.")
